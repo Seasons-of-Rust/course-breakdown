@@ -1,4 +1,4 @@
-code1,code2,code3,code4,section,kind,thing,start,end,start_date,end_date,num1,num2
+semester,crn,subject,code,section,kind,days,start,end,start_date,end_date,total_space,taken_space
 202230,30015,ACSE,4101,A,LEC,T,1805,2055,2022-09-07,2022-12-09,80,21
 202230,30016,ACSE,4101,A1E,TUT,F,0835,1125,2022-09-19,2022-12-09,80,21
 202310,10014,AERO,2001,C,LEC,TR,1435,1525,2023-01-09,2023-04-12,35,35
