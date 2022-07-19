@@ -1,8 +1,10 @@
 use std::{
     collections::{HashMap, HashSet},
     fs::File,
+    io,
 };
 
+use chrono::{DateTime, Utc};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize, Clone)]
@@ -17,8 +19,8 @@ struct Course {
     days: String,
     start: String,
     end: String,
-    start_date: String,
-    end_date: String,
+    start_date: DateTime<Utc>,
+    end_date: DateTime<Utc>,
     total_space: i32,
     taken_space: i32,
 }
@@ -29,8 +31,9 @@ impl Course {
     }
 
     /// Print out pretty text from a course ❗
-    pub fn course_title() -> String {
-        todo!()
+    pub fn course_title(self) -> String {
+        let s: String = self.code.to_string();
+        format!("{}{}", self.subject, s)
     }
 }
 
@@ -56,9 +59,38 @@ enum Kind {
     OTH,
     REP,
     DIR,
-    NTC
+    NTC,
 }
-
+impl Kind {
+    pub fn getFullString(self) -> &str {
+        match self {
+            // (?) means it's what copilot reccomended but idk if it's accurate,
+            // at least it was and then copilot started putting in it's own
+            // (?)s, so it's just as unsure as I am.
+            Kind::LEC => "Lecture",
+            Kind::TUT => "Tutorial",
+            Kind::LAB => "Lab",
+            Kind::PAN => "Practical (?)",
+            Kind::GRP => "Group",
+            Kind::FLM => "Film",
+            Kind::PLA => "Placement",
+            Kind::WKS => "Workshop",
+            Kind::SEM => "Seminar",
+            Kind::IND => "Individual",
+            Kind::PRC => "uhhhhhh2",
+            Kind::HON => "Honor (?)",
+            Kind::WRK => "Work",
+            Kind::FIE => "Field (?)",
+            Kind::CAP => "Capstone (?)",
+            Kind::RES => "Research",
+            Kind::STU => "Student (?)",
+            Kind::OTH => "Other (?)",
+            Kind::REP => "Repeat (?)",
+            Kind::DIR => "Direction (?)",
+            Kind::NTC => "Notice (?)",
+        }
+    }
+}
 
 fn main() {
     // Load courses.csv
@@ -72,34 +104,28 @@ fn main() {
         courses.push(course.unwrap());
     }
 
-    
+    // Get all of the courses in a subject
     let subject_map: HashMap<String, Course> = sort_courses(courses.clone());
-    
+
     // Get all of the unique types in the kind column
     let kind_map: HashSet<String> = courses.iter().map(|c| c.kind.clone()).collect();
-    
+
     return;
 
     timed_courses(&subject_map);
 
     ask_user_for_course();
 
-    show_histogram(&subject_map);
+    show_histogram(&courses);
 }
 
-fn show_histogram(courses: &HashMap<String, Course>) {
-    // Assume that all of the courses have been broken down into 5 minute
-    // timeslots
-
-    // Use ascii characters to represent intensity
-
-    // $@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\|()1{}[]?-_+~<>i!lI;:,"^`'.
-}
-
-fn ask_user_for_course() { // Allie
+fn ask_user_for_course() {
     // Get a course subject and code from the user
-    println!("Please enter a course code: ");
-    let courseCode =
+    println!("Please enter a course subject: ");
+    let mut courseSub = String::new();
+
+        io::stdin().read_line(&mut courseSub).expect("Error.");
+
     // Verify that it's in the courses
 }
 
@@ -119,18 +145,21 @@ fn sort_courses(courses: Vec<Course>) -> HashMap<String, Course> {
     // If it's a key in the hashmap already, add it to the vec in there,
     // otherwise create a new vec
     for course in course_iterator {
-        if course_hashmap.contains_key(course) {
-            
-        }
-        else {
-            let course_vector = 
-        }
+        let course_vec = course_hashmap.entry(&course.subject).or_insert(Vec::new());
+        course_vec.push(course);
+        // let mut course_vector: Vec<Course> = Vec::new();
+        // if course_hashmap.contains_key(&course.subject) == false {
+        //     course_vector.push(course.clone());
+        // } else {
+        //     course_vector.push(course);
+        // }
+        // course_hashmap.insert(course.subject, course_vector);
     }
 
     course_hashmap
 }
 
-fn order_timeslots(courses: Vec<Course>) {
+fn order_timeslots(courses: Vec<Course>) -> Vec<String> {
     let mut timetable: HashMap<String, u32> = HashMap::new();
 
     for c in courses {
@@ -149,8 +178,43 @@ fn order_timeslots(courses: Vec<Course>) {
     println!("{:?}", hash_vec);
     hash_vec.sort_by(|a, b| b.1.cmp(a.1));
     println!("Sorted: {:?}", hash_vec);
-    let final_vec: Vec<String> = hash_vec.into_iter().map(|x, y| x.clone()).collect();
+    // this is wrong will fix
+    let final_vec: Vec<String> = hash_vec.iter().map(|x| x.1.clone()).collect();
     final_vec
+}
+
+struct TimeRange {
+    start_time: u32,
+    end_time: u32,
+    day: u32,
+}
+
+impl TimeRange {
+    pub fn intersect(self, other: Self) -> bool {
+        other.day == self.day
+            && (other.start_time >= self.end_time && other.start_time < self.end_time)
+            || (other.start_time < self.end_time && self.start_time < other.end_time)
+    }
+}
+
+/*
+impl TimeRange {
+    pub fn intersect(self, other: TimeRange); //fffffff :(
+}
+*/
+
+fn show_histogram(courses: &Vec<Course>) {
+    let mut timetable: HashMap<String, u32> = HashMap::new();
+    for c in courses {
+        let 
+    }
+    
+    // Assume that all of the courses have been broken down into 5 minute
+    // timeslots
+
+    // Use ascii characters to represent intensity
+
+    // $@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\|()1{}[]?-_+~<>i!lI;:,"^`'.
 }
 
 /// Ideas:
