@@ -7,6 +7,8 @@ use std::{
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 
+/// A course being offered at Carleton. It's specific by the semester, and the
+/// section
 #[derive(Debug, Deserialize, Clone)]
 struct Course {
     //202310,10015,AERO,2001,L1,LAB,TR,1135,1325,2023-01-09,2023-04-12,70,63
@@ -17,8 +19,8 @@ struct Course {
     section: String,
     kind: Kind,
     days: String,
-    start: String,
-    end: String,
+    start: i32,
+    end: i32,
     start_date: String,
     end_date: String,
     total_space: i32,
@@ -30,26 +32,27 @@ impl Course {
         format!("{}{}{}", self.days, self.start, self.end)
     }
 
-    /// Print out pretty text from a course ❗
+    /// Print out pretty text from a course
     pub fn course_title(self) -> String {
         format!("{} {}", self.subject, self.code)
     }
 
-    // pub fn course_description(self) -> String { 
-    //     format!(
-    //         "
-    //     {} {} {} ({})\n
-    //     Days: {}\n
-    //     ",
-    //         self.subject,
-    //         self.code,
-    //         self.section,
-    //         self.kind.getFullString()
-    //         self.
-    //     )
-    // }
+    /// Print out a description of the course
+    pub fn course_description(self) -> String {
+        format!(
+            "{} {} {} ({})\n{} {} - {}\n",
+            self.subject,
+            self.code,
+            self.section,
+            self.kind.getFullString(),
+            self.days,
+            self.start,
+            self.end
+        )
+    }
 }
 
+/// The different course types
 #[derive(Debug, Deserialize, Clone)]
 enum Kind {
     LEC,
@@ -74,12 +77,14 @@ enum Kind {
     DIR,
     NTC,
 }
+
 impl Kind {
+    /// Translate each type into a more verbose string n
     pub fn getFullString(self) -> String {
         let fullString = match self {
             // (?) means it's what copilot reccomended but idk if it's accurate,
             // at least it was and then copilot started putting in it's own
-            // (?)s, so it's just as unsure as I am.
+            // (?)s, so it's just as unsure as I am. LOL
             Kind::LEC => "Lecture",
             Kind::TUT => "Tutorial",
             Kind::LAB => "Lab",
@@ -114,6 +119,7 @@ fn main() {
     // Get the vec ready
     let mut courses: Vec<Course> = Vec::new();
 
+    // Deserialize the reader, and create a course out of each row
     for course in rdr.deserialize() {
         courses.push(course.unwrap());
     }
@@ -129,26 +135,25 @@ fn main() {
     // Get all of the unique types in the kind column
     // let kind_map: HashSet<String> = courses.iter().map(|c| c.kind.clone()).collect();
 
-    return;
-
     timed_courses(&subject_map);
 
-    //ask_user_for_course(subject_map);
+    //ask_user_for_course(&subject_map);
 
     show_histogram(&courses);
 }
 
+/// Get input from the user on which course they want to see the details of
 fn ask_user_for_course(courses: &HashMap<String, Course>) {
     // Get a course subject and code from the user
     println!("Please enter a course subject: ");
     let mut course_sub = String::new();
-
     io::stdin().read_line(&mut course_sub).expect("Error.");
-
+    // Verify that hashmap contains subject code
+    //implement when sort_courses is final 
     println!("Please enter a course code: ");
     let mut course_code = String::new();
     io::stdin().read_line(&mut course_code).expect("Error.");
-    // Verify that it's in the courses
+    // Verify that subject key contains code value 
 }
 
 /// Do something with time
@@ -158,26 +163,17 @@ fn timed_courses(courses: &HashMap<String, Vec<Course>>) {
 }
 
 /// Sort the course into a hashmap
-/// Worked on by Alan
 fn sort_courses(courses: Vec<Course>) -> HashMap<String, Vec<Course>> {
     let mut course_hashmap = HashMap::new();
-    // Iterate over each course
-    let course_iterator = courses.iter();
 
-    // If it's a key in the hashmap already, add it to the vec in there,
-    // otherwise create a new vec
-    for course in course_iterator {
+    // Iterate over each course
+    for course in courses.iter() {
+        // If it's a key in the hashmap already, add it to the vec in there,
+        // otherwise create a new vec
         let course_vec = course_hashmap
             .entry(course.subject.clone())
             .or_insert(Vec::new());
         course_vec.push(course.clone());
-        // let mut course_vector: Vec<Course> = Vec::new();
-        // if course_hashmap.contains_key(&course.subject) == false {
-        //     course_vector.push(course.clone());
-        // } else {
-        //     course_vector.push(course);
-        // }
-        // course_hashmap.insert(course.subject, course_vector);
     }
 
     course_hashmap
@@ -186,6 +182,7 @@ fn sort_courses(courses: Vec<Course>) -> HashMap<String, Vec<Course>> {
 fn order_timeslots(courses: Vec<Course>) -> Vec<String> {
     let mut timetable: HashMap<String, u32> = HashMap::new();
 
+    // Bucket courses together based on semester, day, start time + end time
     for c in courses {
         let ccode = c.get_timeslot_for_course();
         timetable.insert(
@@ -197,12 +194,18 @@ fn order_timeslots(courses: Vec<Course>) -> Vec<String> {
             },
         );
     }
+
     // Thanks StackOverflow!
     let mut hash_vec: Vec<(&String, &u32)> = timetable.iter().collect();
     println!("{:?}", hash_vec);
+
+    // Sort the vec by most full timeslots
     hash_vec.sort_by(|a, b| b.1.cmp(a.1));
+
+    // Print it out
     println!("Sorted: {:?}", hash_vec);
-    // this is wrong will fix
+
+    // Get the list of times inorder th
     let final_vec: Vec<String> = hash_vec.iter().map(|x| x.0.clone()).collect();
     final_vec
 }
@@ -224,12 +227,21 @@ impl TimeRange {
 
 fn show_histogram(courses: &Vec<Course>) {
     // we only need to count the intervals where the intersection occurs
-    let mut timetable: HashMap<String, u32> = HashMap::new();
+    let mut timetable: HashMap<u32, u32> = HashMap::new();
     //WIP:
     for c in courses {
-        //let intervals =
-        //map.extend()
+        let course_end: u32 = c.end.parse().unwrap();
+        let course_start: u32 = c.start.parse().unwrap();
+        let intervals = (course_end..course_start).step_by(5);
+        println!("{:?}", intervals);
+        timetable.extend(intervals.map(|x| (x, 1 + if timetable.contains_key(&x) {
+                timetable[&x]
+            } else {
+                0
+            })));    
     }
+
+
 
     // Assume that all of the courses have been broken down into 5 minute
     // timeslots
